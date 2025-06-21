@@ -4,6 +4,9 @@ import tensorflow as tf
 from PIL import Image
 import io
 
+import logging
+logging.basicConfig(level=logging.INFO)
+
 app = Flask(__name__)
 
 # 모델 로딩
@@ -13,9 +16,9 @@ interpreter.allocate_tensors()
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
 
-# 라벨 로딩 (선택)
+# 라벨 로딩
 with open("model/labels.txt", "r") as f:
-    labels = [line.strip() for line in f.readlines()]
+    labels = [line.strip().split(' ', 1)[1] for line in f]  # '0 Class 1' → 'Class 1'
 
 # Spring → Flask 이미지 검증 요청 처리
 @app.route("/model/events", methods=["POST"])
@@ -35,9 +38,13 @@ def validate_image():
     predicted_index = int(np.argmax(output_data[0]))
     confidence = float(np.max(output_data[0]))
 
+#디버깅용
+    #logging.info(f"[DEBUG] 예측 인덱스: {predicted_index}")
+    #logging.info(f"[DEBUG] confidence: {confidence}")
+
     # 'Class 2'일 때만 유효한 이미지라고 판단하고 1 반환
     VALID_LABEL = "Class 2"
-    is_valid = labels[predicted_index] == VALID_LABEL and confidence > 0.7 #confidence 수치 0.7 이상일 때 성공
+    is_valid = labels[predicted_index] == VALID_LABEL and confidence > 0.6 #confidence 수치 0.6 이상일 때 성공
 
     return jsonify({"valid": is_valid})
 
