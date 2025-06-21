@@ -13,18 +13,18 @@ interpreter.allocate_tensors()
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
 
-# 라벨 로딩 (옵션)
+# 라벨 로딩 (선택)
 with open("model/labels.txt", "r") as f:
     labels = [line.strip() for line in f.readlines()]
 
-# 응답 형식
-@app.route("/predict", methods=["POST"])
-def predict():
+# Spring → Flask 이미지 검증 요청 처리
+@app.route("/model/events", methods=["POST"])
+def validate_image():
     if 'image' not in request.files:
-        return jsonify({"error": "No image file provided"}), 400
+        return jsonify({"success": False, "message": "No image uploaded"}), 400
 
     image_file = request.files['image']
-    image = Image.open(image_file.stream).resize((224, 224))  # Teachable Machine 기본 입력 크기
+    image = Image.open(image_file.stream).resize((224, 224))
     image = np.array(image).astype(np.float32) / 255.0
     image = np.expand_dims(image, axis=0)
 
@@ -35,11 +35,11 @@ def predict():
     predicted_index = int(np.argmax(output_data[0]))
     confidence = float(np.max(output_data[0]))
 
-# 응답 형식 지정
-    return jsonify({
-        "prediction": labels[predicted_index] if labels else predicted_index,
-        "confidence": confidence
-    })
+    # 'Class 2'일 때만 유효한 이미지라고 판단하고 1 반환
+    VALID_LABEL = "Class 2"
+    is_valid = labels[predicted_index] == VALID_LABEL and confidence > 0.7 #confidence 수치 0.7 이상일 때 성공
+
+    return jsonify({"valid": is_valid})
 
 if __name__ == "__main__":
     app.run(debug=True)
