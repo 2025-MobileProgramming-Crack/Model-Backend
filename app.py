@@ -27,7 +27,7 @@ def validate_image():
         return jsonify({"success": False, "message": "No image uploaded"}), 400
 
     image_file = request.files['image']
-    image = Image.open(image_file.stream).resize((224, 224))
+    image = Image.open(image_file.stream).convert('RGB').resize((224, 224)) #RGBA -> RGB변환
     image = np.array(image).astype(np.float32) / 255.0
     image = np.expand_dims(image, axis=0)
 
@@ -49,4 +49,5 @@ def validate_image():
     return jsonify({"valid": is_valid})
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)
+    #app.run(debug=True)
